@@ -1,0 +1,1 @@
+{{ user.name }} ALL=NOPASSWD: {{ user.nonsudo_allowed_sudo_commands | join(', ') }}

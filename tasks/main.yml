@@ -1,0 +1,69 @@
+---
+# tasks file for add_user
+
+# userfull commands
+# getent passwd
+# getent group developer
+# sudo userdel admin 
+# sudo groupadd developers
+# sudo groupdel developers
+
+- name: Determine available groups
+  getent:
+    database: group
+  register: available_groups
+  tags: user
+
+- name: Add users
+  become: True
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    shell: /bin/bash
+  loop: "{{ users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+  tags: user
+
+- name: Add users to groups, skip if a group doesn't exist
+  become: True
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: "{{ item.groups }}"
+    append: True
+  loop: "{{ users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.groups | difference(ansible_facts.getent_group.keys()) | length == 0
+  tags: user
+
+- name: Check if a user should be added to a non existing group
+  debug:
+    msg: "User {{ item.name }} should be added to one of those groups '{{ item.groups }}', but one of the groups does not exist"
+  when: item.groups | difference(ansible_facts.getent_group.keys()) | length > 0
+  loop: "{{ users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags: user
+
+# When faulty sudoers files corrupted sudo, use:
+# pkexec rm /etc/sudoers.d/<file> 
+- name: Hint
+  debug:
+    msg: "When faulty sudoers files corrupted sudo, use: pkexec rm /etc/sudoers.d/<file>"
+
+- name: Create sudoers files in /etc/sudoers.d/
+  template:
+    src: files/sudoers_template.j2
+    dest: "/etc/sudoers.d/{{ user.name }}"
+    mode: '0440'
+    owner: root
+    group: root
+  when: user.nonsudo_allowed_sudo_commands | length > 0
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: user
+    label: "{{ user.name }}"
+  become: true
+  tags: user

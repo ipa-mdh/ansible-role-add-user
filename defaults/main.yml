@@ -1,0 +1,22 @@
+---
+# defaults file for add_user
+
+## User data
+users:
+- name: processit # username
+  password: processit # password
+  groups: # which groups
+    - realtime
+  nonsudo_allowed_sudo_commands: # Sudo commands which should be allowed, even when user is not in sudoers group
+    - /bin/systemctl
+    - /usr/sbin/reboot
+    - /usr/sbin/shutdown
+
+# - name: user
+#   password: not_so_secure_password
+#   groups: 
+#     - developers
+#     - realtime
+#   nonsudo_allowed_sudo_commands:
+#       - /bin/systemctl
+#       - /usr/sbin/reboot
